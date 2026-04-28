@@ -3,78 +3,110 @@ from datetime import datetime
 from config import settings
 
 APIFY_BASE = "https://api.apify.com/v2"
-ACTOR_ID = "apify~instagram-scraper"
 
 
-def fetch_profile(username: str) -> dict:
-    """Apify経由でInstagramプロフィール情報を取得"""
-    url = f"{APIFY_BASE}/acts/{ACTOR_ID}/run-sync-get-dataset-items"
-    body = {
-        "usernames": [username],
-        "resultsLimit": 1,
-        "scrapeType": "posts",
-    }
+def _run_actor(actor_id: str, body: dict, timeout: int = 180) -> list:
+    url = f"{APIFY_BASE}/acts/{actor_id}/run-sync-get-dataset-items"
     resp = httpx.post(
         url,
         params={"token": settings.apify_api_token},
         json=body,
-        timeout=180,
+        timeout=timeout,
     )
     resp.raise_for_status()
-    items = resp.json()
+    return resp.json()
 
-    if not items:
-        return {"username": username, "follower_count": 0, "following_count": 0, "post_count": 0}
 
-    item = items[0]
-    return {
-        "username": username,
-        "display_name": item.get("ownerFullName") or item.get("owner", {}).get("fullName", ""),
-        "follower_count": item.get("followersCount") or item.get("owner", {}).get("followersCount", 0),
-        "following_count": item.get("followingCount") or 0,
-        "post_count": item.get("postsCount") or 0,
-    }
+def fetch_profile(username: str) -> dict:
+    """Apifyのプロフィールスクレイパーでフォロワー数を取得"""
+    # apify~instagram-profile-scraper はプロフィール情報に特化
+    try:
+        items = _run_actor(
+            "apify~instagram-profile-scraper",
+            {"usernames": [username]},
+        )
+    except Exception:
+        items = []
+
+    if items:
+        item = items[0]
+        return {
+            "username": username,
+            "display_name": item.get("fullName") or item.get("name") or "",
+            "follower_count": item.get("followersCount") or item.get("followers") or 0,
+            "following_count": item.get("followingCount") or item.get("following") or 0,
+            "post_count": item.get("postsCount") or item.get("posts") or 0,
+        }
+
+    # フォールバック: instagram-scraper で投稿から取得
+    try:
+        items2 = _run_actor(
+            "apify~instagram-scraper",
+            {
+                "usernames": [username],
+                "resultsLimit": 3,
+                "scrapeType": "posts",
+            },
+        )
+    except Exception:
+        items2 = []
+
+    if items2:
+        item = items2[0]
+        followers = (
+            item.get("followersCount")
+            or item.get("owner", {}).get("followersCount")
+            or 0
+        )
+        return {
+            "username": username,
+            "display_name": item.get("ownerFullName") or item.get("owner", {}).get("fullName", ""),
+            "follower_count": followers,
+            "following_count": item.get("followingCount") or 0,
+            "post_count": item.get("postsCount") or 0,
+        }
+
+    return {"username": username, "follower_count": 0, "following_count": 0, "post_count": 0}
 
 
 def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
     """Apify経由でInstagram最新投稿を取得"""
-    url = f"{APIFY_BASE}/acts/{ACTOR_ID}/run-sync-get-dataset-items"
-    body = {
-        "usernames": [username],
-        "resultsLimit": count,
-        "scrapeType": "posts",
-    }
-    resp = httpx.post(
-        url,
-        params={"token": settings.apify_api_token},
-        json=body,
-        timeout=180,
-    )
-    resp.raise_for_status()
-    items = resp.json()
+    try:
+        items = _run_actor(
+            "apify~instagram-scraper",
+            {
+                "usernames": [username],
+                "resultsLimit": count,
+                "scrapeType": "posts",
+            },
+        )
+    except Exception:
+        return []
 
     posts = []
     for item in items:
-        followers = item.get("followersCount") or item.get("owner", {}).get("followersCount") or 1
+        followers = (
+            item.get("followersCount")
+            or item.get("owner", {}).get("followersCount")
+            or 1
+        )
         likes = item.get("likesCount") or 0
         comments = item.get("commentsCount") or 0
         engagement = (likes + comments) / followers * 100
 
-        # コンテンツタイプ判定
         media_type = item.get("type", "").lower()
-        if "video" in media_type or item.get("videoUrl"):
+        if item.get("productType") == "clips":
+            content_type = "reel"
+        elif "video" in media_type or item.get("videoUrl"):
             content_type = "video"
         elif media_type == "sidecar" or item.get("childPosts"):
             content_type = "carousel"
-        elif item.get("productType") == "clips":
-            content_type = "reel"
         else:
             content_type = "photo"
 
         hashtags = item.get("hashtags") or []
         caption = item.get("caption") or ""
 
-        # タイムスタンプ処理
         posted_at = None
         ts = item.get("timestamp") or item.get("takenAt")
         if ts:
