@@ -1,92 +1,106 @@
-import asyncio
-import json
-from pathlib import Path
+import httpx
 from datetime import datetime
-import twikit
 from config import settings
 
-COOKIES_FILE = Path("/tmp/x_cookies.json")
-_client: twikit.Client | None = None
+APIFY_BASE = "https://api.apify.com/v2"
+ACTOR_ID = "apidojo~tweet-scraper"
 
 
-async def get_client() -> twikit.Client:
-    global _client
-    if _client is not None:
-        return _client
-
-    cl = twikit.Client(language="ja-JP")
-
-    if COOKIES_FILE.exists():
-        cl.load_cookies(str(COOKIES_FILE))
-        _client = cl
-        return cl
-
-    await cl.login(
-        auth_info_1=settings.x_username,
-        auth_info_2=settings.x_email if settings.x_email else None,
-        password=settings.x_password,
+def fetch_profile(username: str) -> dict:
+    """Apify経由でXプロフィール情報を取得"""
+    url = f"{APIFY_BASE}/acts/{ACTOR_ID}/run-sync-get-dataset-items"
+    body = {
+        "twitterHandles": [username],
+        "maxItems": 1,
+        "queryType": "Latest",
+    }
+    resp = httpx.post(
+        url,
+        params={"token": settings.apify_api_token},
+        json=body,
+        timeout=180,
     )
-    cl.save_cookies(str(COOKIES_FILE))
-    _client = cl
-    return cl
+    resp.raise_for_status()
+    items = resp.json()
 
+    if not items:
+        return {"username": username, "follower_count": 0, "following_count": 0, "post_count": 0}
 
-async def fetch_profile(username: str) -> dict:
-    cl = await get_client()
-    user = await cl.get_user_by_screen_name(username)
+    item = items[0]
+    author = item.get("author") or {}
     return {
-        "username": user.screen_name,
-        "display_name": user.name,
-        "follower_count": user.followers_count,
-        "following_count": user.following_count,
-        "post_count": user.statuses_count,
+        "username": username,
+        "display_name": author.get("name") or item.get("author_name", ""),
+        "follower_count": author.get("followers") or 0,
+        "following_count": author.get("following") or 0,
+        "post_count": author.get("statusesCount") or 0,
     }
 
 
-async def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
-    cl = await get_client()
-    user = await cl.get_user_by_screen_name(username)
-    tweets = await user.get_tweets("Tweets", count=count)
+def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
+    """Apify経由でX最新ツイートを取得"""
+    url = f"{APIFY_BASE}/acts/{ACTOR_ID}/run-sync-get-dataset-items"
+    body = {
+        "twitterHandles": [username],
+        "maxItems": count,
+        "queryType": "Latest",
+    }
+    resp = httpx.post(
+        url,
+        params={"token": settings.apify_api_token},
+        json=body,
+        timeout=180,
+    )
+    resp.raise_for_status()
+    items = resp.json()
 
     posts = []
-    follower_count = user.followers_count or 1
+    for item in items:
+        author = item.get("author") or {}
+        followers = author.get("followers") or 1
+        likes = item.get("likeCount") or 0
+        replies = item.get("replyCount") or 0
+        retweets = item.get("retweetCount") or 0
+        engagement = (likes + replies + retweets) / followers * 100
 
-    for tweet in tweets:
-        hashtags = [f"#{tag['text']}" for tag in (tweet.hashtags or [])]
-        engagement = (tweet.favorite_count + tweet.reply_count + tweet.retweet_count) / follower_count * 100
+        # コンテンツタイプ判定
+        media = item.get("media") or []
+        if any(m.get("type") == "video" for m in media):
+            content_type = "video"
+        elif media:
+            content_type = "photo"
+        else:
+            content_type = "text"
 
-        content_type = "text"
-        if tweet.media:
-            media_types = [m.type for m in tweet.media]
-            if "video" in media_types:
-                content_type = "video"
-            else:
-                content_type = "photo"
+        hashtags = [f"#{h}" for h in (item.get("hashtags") or [])]
+
+        # タイムスタンプ処理
+        posted_at = None
+        ts = item.get("createdAt")
+        if ts:
+            try:
+                posted_at = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except Exception:
+                pass
 
         posts.append({
-            "post_id": str(tweet.id),
+            "post_id": str(item.get("id") or ""),
             "platform": "x",
             "content_type": content_type,
-            "caption": tweet.full_text or "",
+            "caption": item.get("text") or item.get("full_text") or "",
             "hashtags": hashtags,
-            "like_count": tweet.favorite_count or 0,
-            "comment_count": tweet.reply_count or 0,
-            "repost_count": tweet.retweet_count or 0,
-            "view_count": tweet.view_count or 0,
+            "like_count": likes,
+            "comment_count": replies,
+            "repost_count": retweets,
+            "view_count": item.get("viewCount") or 0,
             "engagement_rate": round(engagement, 2),
-            "posted_at": tweet.created_at_datetime,
+            "posted_at": posted_at,
         })
+
     return posts
 
 
 def run_async(coro):
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                future = pool.submit(asyncio.run, coro)
-                return future.result()
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        return asyncio.run(coro)
+    """後方互換性のためのダミー関数（Apifyは同期）"""
+    import asyncio
+    return asyncio.run(coro) if asyncio.iscoroutine(coro) else coro

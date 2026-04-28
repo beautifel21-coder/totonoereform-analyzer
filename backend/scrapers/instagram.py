@@ -1,80 +1,103 @@
-import json
-import os
-from pathlib import Path
+import httpx
 from datetime import datetime
-from instagrapi import Client
-from instagrapi.exceptions import LoginRequired
 from config import settings
 
-SESSION_FILE = Path("/tmp/instagram_session.json")
-_client: Client | None = None
-
-
-def get_client() -> Client:
-    global _client
-    if _client is not None:
-        return _client
-
-    cl = Client()
-    cl.delay_range = [2, 5]
-
-    if SESSION_FILE.exists():
-        try:
-            cl.load_settings(SESSION_FILE)
-            cl.login(settings.instagram_username, settings.instagram_password)
-            cl.dump_settings(SESSION_FILE)
-            _client = cl
-            return cl
-        except LoginRequired:
-            SESSION_FILE.unlink(missing_ok=True)
-
-    cl.login(settings.instagram_username, settings.instagram_password)
-    cl.dump_settings(SESSION_FILE)
-    _client = cl
-    return cl
+APIFY_BASE = "https://api.apify.com/v2"
+ACTOR_ID = "apify~instagram-scraper"
 
 
 def fetch_profile(username: str) -> dict:
-    cl = get_client()
-    user = cl.user_info_by_username(username)
+    """Apify経由でInstagramプロフィール情報を取得"""
+    url = f"{APIFY_BASE}/acts/{ACTOR_ID}/run-sync-get-dataset-items"
+    body = {
+        "usernames": [username],
+        "resultsLimit": 1,
+        "scrapeType": "posts",
+    }
+    resp = httpx.post(
+        url,
+        params={"token": settings.apify_api_token},
+        json=body,
+        timeout=180,
+    )
+    resp.raise_for_status()
+    items = resp.json()
+
+    if not items:
+        return {"username": username, "follower_count": 0, "following_count": 0, "post_count": 0}
+
+    item = items[0]
     return {
-        "username": user.username,
-        "display_name": user.full_name,
-        "follower_count": user.follower_count,
-        "following_count": user.following_count,
-        "post_count": user.media_count,
+        "username": username,
+        "display_name": item.get("ownerFullName") or item.get("owner", {}).get("fullName", ""),
+        "follower_count": item.get("followersCount") or item.get("owner", {}).get("followersCount", 0),
+        "following_count": item.get("followingCount") or 0,
+        "post_count": item.get("postsCount") or 0,
     }
 
 
 def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
-    cl = get_client()
-    user_id = cl.user_id_from_username(username)
-    medias = cl.user_medias(user_id, amount=count)
+    """Apify経由でInstagram最新投稿を取得"""
+    url = f"{APIFY_BASE}/acts/{ACTOR_ID}/run-sync-get-dataset-items"
+    body = {
+        "usernames": [username],
+        "resultsLimit": count,
+        "scrapeType": "posts",
+    }
+    resp = httpx.post(
+        url,
+        params={"token": settings.apify_api_token},
+        json=body,
+        timeout=180,
+    )
+    resp.raise_for_status()
+    items = resp.json()
 
     posts = []
-    for m in medias:
-        hashtags = [tag for tag in (m.caption_text or "").split() if tag.startswith("#")]
-        follower_count = cl.user_info(user_id).follower_count or 1
-        engagement = (m.like_count + m.comment_count) / follower_count * 100
+    for item in items:
+        followers = item.get("followersCount") or item.get("owner", {}).get("followersCount") or 1
+        likes = item.get("likesCount") or 0
+        comments = item.get("commentsCount") or 0
+        engagement = (likes + comments) / followers * 100
 
-        content_type = m.media_type
-        type_map = {1: "photo", 2: "video", 8: "carousel"}
-        if hasattr(m, "product_type") and m.product_type == "clips":
-            content_type_str = "reel"
+        # コンテンツタイプ判定
+        media_type = item.get("type", "").lower()
+        if "video" in media_type or item.get("videoUrl"):
+            content_type = "video"
+        elif media_type == "sidecar" or item.get("childPosts"):
+            content_type = "carousel"
+        elif item.get("productType") == "clips":
+            content_type = "reel"
         else:
-            content_type_str = type_map.get(m.media_type, "photo")
+            content_type = "photo"
+
+        hashtags = item.get("hashtags") or []
+        caption = item.get("caption") or ""
+
+        # タイムスタンプ処理
+        posted_at = None
+        ts = item.get("timestamp") or item.get("takenAt")
+        if ts:
+            try:
+                if isinstance(ts, str):
+                    posted_at = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                elif isinstance(ts, (int, float)):
+                    posted_at = datetime.fromtimestamp(ts)
+            except Exception:
+                pass
 
         posts.append({
-            "post_id": str(m.id),
+            "post_id": str(item.get("id") or item.get("shortCode") or ""),
             "platform": "instagram",
-            "content_type": content_type_str,
-            "caption": m.caption_text or "",
+            "content_type": content_type,
+            "caption": caption,
             "hashtags": hashtags,
-            "like_count": m.like_count,
-            "comment_count": m.comment_count,
+            "like_count": likes,
+            "comment_count": comments,
             "repost_count": 0,
-            "view_count": m.view_count or 0,
+            "view_count": item.get("videoViewCount") or 0,
             "engagement_rate": round(engagement, 2),
-            "posted_at": m.taken_at,
+            "posted_at": posted_at,
         })
+
     return posts

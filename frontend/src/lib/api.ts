@@ -54,6 +54,18 @@ export interface ContentTypeRow {
   avg_likes: number;
 }
 
+export interface SearchedAccount {
+  username: string;
+  display_name: string;
+  followers: number;
+  post_count: number;
+  avg_likes: number;
+  top_likes: number;
+  avg_engagement: number;
+  buzz_score: number;
+  platform: Platform;
+}
+
 export interface TopPost {
   username: string;
   content_type: string;
@@ -61,6 +73,7 @@ export interface TopPost {
   hashtags: string[];
   like_count: number;
   comment_count: number;
+  repost_count?: number;
   engagement_rate: number;
   posted_at: string | null;
 }
@@ -70,6 +83,8 @@ export const api = {
     list: () => get<Competitor[]>("/competitors/"),
     create: (data: Omit<Competitor, "id">) => post<Competitor>("/competitors/", data),
     delete: (id: number) => del<{ ok: boolean }>(`/competitors/${id}`),
+    recordSnapshot: (id: number, follower_count: number) =>
+      post<{ ok: boolean }>(`/competitors/${id}/snapshot`, { follower_count }),
   },
   fetch: {
     one: (id: number) => post<{ ok: boolean; posts_fetched: number; followers: number }>(`/fetch/${id}`),
@@ -105,6 +120,12 @@ export const api = {
       const q = new URLSearchParams({ days: String(days) });
       if (platform) q.set("platform", platform);
       return get<Record<string, { date: string; count: number }[]>>(`/analytics/post-frequency?${q}`);
+    },
+  },
+  search: {
+    accounts: (hashtags: string, minFollowers: number) => {
+      const q = new URLSearchParams({ hashtags, min_followers: String(minFollowers) });
+      return get<SearchedAccount[]>(`/search/accounts?${q}`);
     },
   },
   exportCsv: () => `${BASE}/export/posts.csv`,

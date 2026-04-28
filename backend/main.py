@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import engine, Base
-from routers import competitors, fetch, analytics, export
+from routers import competitors, fetch, analytics, export, search
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,6 +19,7 @@ app.include_router(competitors.router)
 app.include_router(fetch.router)
 app.include_router(analytics.router)
 app.include_router(export.router)
+app.include_router(search.router)
 
 
 @app.get("/health")

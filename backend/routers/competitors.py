@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db
-from models import Competitor, Platform
+from models import Competitor, Platform, Snapshot
 
 router = APIRouter(prefix="/competitors", tags=["competitors"])
 
@@ -47,5 +47,20 @@ def delete_competitor(competitor_id: int, db: Session = Depends(get_db)):
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
     db.delete(c)
+    db.commit()
+    return {"ok": True}
+
+
+class SnapshotIn(BaseModel):
+    follower_count: int
+
+
+@router.post("/{competitor_id}/snapshot")
+def record_snapshot(competitor_id: int, data: SnapshotIn, db: Session = Depends(get_db)):
+    c = db.query(Competitor).filter(Competitor.id == competitor_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Not found")
+    snap = Snapshot(competitor_id=competitor_id, follower_count=data.follower_count)
+    db.add(snap)
     db.commit()
     return {"ok": True}
