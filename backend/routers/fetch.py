@@ -43,7 +43,7 @@ def fetch_competitor(competitor_id: int, db: Session = Depends(get_db)):
     try:
         if competitor.platform == Platform.instagram:
             profile = instagram.fetch_profile(competitor.username)
-            posts = instagram.fetch_recent_posts(competitor.username)
+            posts = instagram.fetch_recent_posts(competitor.username, known_followers=profile.get("follower_count", 0))
         else:
             profile = twitter.run_async(twitter.fetch_profile(competitor.username))
             posts = twitter.run_async(twitter.fetch_recent_posts(competitor.username))
@@ -65,7 +65,7 @@ def fetch_all(db: Session = Depends(get_db)):
         try:
             if c.platform == Platform.instagram:
                 profile = instagram.fetch_profile(c.username)
-                posts = instagram.fetch_recent_posts(c.username)
+                posts = instagram.fetch_recent_posts(c.username, known_followers=profile.get("follower_count", 0))
             else:
                 profile = twitter.run_async(twitter.fetch_profile(c.username))
                 posts = twitter.run_async(twitter.fetch_recent_posts(c.username))

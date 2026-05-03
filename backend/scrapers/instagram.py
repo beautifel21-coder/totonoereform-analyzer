@@ -70,7 +70,7 @@ def fetch_profile(username: str) -> dict:
     return {"username": username, "follower_count": 0, "following_count": 0, "post_count": 0}
 
 
-def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
+def fetch_recent_posts(username: str, count: int = 30, known_followers: int = 0) -> list[dict]:
     """Apify経由でInstagram最新投稿を取得"""
     username = username.lstrip("@")
     try:
@@ -90,6 +90,7 @@ def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
         followers = (
             item.get("followersCount")
             or item.get("owner", {}).get("followersCount")
+            or known_followers
             or 1
         )
         likes = item.get("likesCount") or 0
