@@ -75,7 +75,7 @@ def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
         items = _run_actor(
             "apify~instagram-scraper",
             {
-                "usernames": [username],
+                "directUrls": [f"https://www.instagram.com/{username}/"],
                 "resultsType": "posts",
                 "resultsLimit": count,
             },
