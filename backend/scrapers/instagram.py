@@ -88,9 +88,9 @@ def fetch_recent_posts(username: str, count: int = 30, known_followers: int = 0)
     posts = []
     for item in items:
         followers = (
-            item.get("followersCount")
+            known_followers
+            or item.get("followersCount")
             or item.get("owner", {}).get("followersCount")
-            or known_followers
             or 1
         )
         likes = item.get("likesCount") or 0
