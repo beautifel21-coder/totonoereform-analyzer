@@ -57,6 +57,29 @@ def fetch_competitor(competitor_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/recalc-engagement")
+def recalc_engagement(db: Session = Depends(get_db)):
+    """全競合アカウントのエンゲージメント率を最新フォロワー数で再計算"""
+    competitors = db.query(Competitor).all()
+    updated = 0
+    for c in competitors:
+        latest_snap = (
+            db.query(Snapshot)
+            .filter(Snapshot.competitor_id == c.id)
+            .order_by(Snapshot.recorded_at.desc())
+            .first()
+        )
+        if not latest_snap or latest_snap.follower_count < 1:
+            continue
+        followers = latest_snap.follower_count
+        posts = db.query(Post).filter(Post.competitor_id == c.id).all()
+        for post in posts:
+            post.engagement_rate = round((post.like_count + post.comment_count) / followers * 100, 2)
+            updated += 1
+    db.commit()
+    return {"ok": True, "updated": updated}
+
+
 @router.post("/all")
 def fetch_all(db: Session = Depends(get_db)):
     competitors = db.query(Competitor).all()
