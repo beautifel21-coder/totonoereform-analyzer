@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import engine, Base
 from routers import competitors, fetch, analytics, export, search
+from routers import auth
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Totonoē Reform 競合分析API", version="1.0.0")
+app = FastAPI(title="Buzzly SNS競合分析API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(competitors.router)
 app.include_router(fetch.router)
 app.include_router(analytics.router)

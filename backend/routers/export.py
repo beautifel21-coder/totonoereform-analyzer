@@ -1,19 +1,40 @@
 import csv
 import io
-from fastapi import APIRouter, Depends
+from typing import Optional
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
 from database import get_db
-from models import Post, Competitor
+from models import Post, Competitor, User
+from routers.auth import get_current_user, ALGORITHM
+from config import settings
 
 router = APIRouter(prefix="/export", tags=["export"])
 
 
 @router.get("/posts.csv")
-def export_posts_csv(db: Session = Depends(get_db)):
+def export_posts_csv(
+    token: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
+):
+    # Support token as query param for direct browser download
+    if current_user is None and token:
+        try:
+            payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id:
+                current_user = db.query(User).filter(User.id == int(user_id)).first()
+        except JWTError:
+            pass
+    if not current_user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="認証が必要です")
     rows = (
         db.query(Post, Competitor.username)
         .join(Competitor)
+        .filter(Competitor.user_id == current_user.id)
         .order_by(Post.posted_at.desc())
         .all()
     )

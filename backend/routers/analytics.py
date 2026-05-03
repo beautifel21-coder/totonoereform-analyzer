@@ -4,7 +4,8 @@ from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 from collections import Counter
 from database import get_db
-from models import Competitor, Snapshot, Post, Platform
+from models import Competitor, Snapshot, Post, Platform, User
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -14,12 +15,14 @@ def follower_trends(
     platform: Platform | None = None,
     days: int = Query(90, ge=7, le=365),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     since = datetime.utcnow() - timedelta(days=days)
     query = (
         db.query(Snapshot, Competitor.username, Competitor.platform)
         .join(Competitor)
         .filter(Snapshot.recorded_at >= since)
+        .filter(Competitor.user_id == current_user.id)
     )
     if platform:
         query = query.filter(Competitor.platform == platform)
@@ -42,6 +45,7 @@ def engagement_summary(
     platform: Platform | None = None,
     days: int = Query(30, ge=7, le=180),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     since = datetime.utcnow() - timedelta(days=days)
     query = (
@@ -54,6 +58,7 @@ def engagement_summary(
         )
         .join(Post)
         .filter(Post.posted_at >= since)
+        .filter(Competitor.user_id == current_user.id)
         .group_by(Competitor.username)
     )
     if platform:
@@ -78,11 +83,17 @@ def hashtag_analysis(
     days: int = Query(30, ge=7, le=180),
     top: int = Query(30, ge=5, le=100),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     since = datetime.utcnow() - timedelta(days=days)
-    query = db.query(Post.hashtags, Post.engagement_rate).filter(Post.posted_at >= since)
+    query = (
+        db.query(Post.hashtags, Post.engagement_rate)
+        .join(Competitor)
+        .filter(Post.posted_at >= since)
+        .filter(Competitor.user_id == current_user.id)
+    )
     if platform:
-        query = query.join(Competitor).filter(Competitor.platform == platform)
+        query = query.filter(Competitor.platform == platform)
 
     rows = query.all()
     tag_counter: Counter = Counter()
@@ -109,6 +120,7 @@ def content_type_analysis(
     platform: Platform | None = None,
     days: int = Query(30, ge=7, le=180),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     since = datetime.utcnow() - timedelta(days=days)
     query = (
@@ -118,11 +130,13 @@ def content_type_analysis(
             func.avg(Post.engagement_rate).label("avg_engagement"),
             func.avg(Post.like_count).label("avg_likes"),
         )
+        .join(Competitor)
         .filter(Post.posted_at >= since)
+        .filter(Competitor.user_id == current_user.id)
         .group_by(Post.content_type)
     )
     if platform:
-        query = query.join(Competitor).filter(Competitor.platform == platform)
+        query = query.filter(Competitor.platform == platform)
 
     rows = query.all()
     return [
@@ -142,12 +156,14 @@ def top_posts(
     days: int = Query(30, ge=7, le=180),
     limit: int = Query(10, ge=5, le=50),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     since = datetime.utcnow() - timedelta(days=days)
     query = (
         db.query(Post, Competitor.username)
         .join(Competitor)
         .filter(Post.posted_at >= since)
+        .filter(Competitor.user_id == current_user.id)
         .order_by(desc(Post.engagement_rate))
         .limit(limit)
     )
@@ -175,6 +191,7 @@ def post_frequency(
     platform: Platform | None = None,
     days: int = Query(30, ge=7, le=180),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     since = datetime.utcnow() - timedelta(days=days)
     query = (
@@ -185,6 +202,7 @@ def post_frequency(
         )
         .join(Post)
         .filter(Post.posted_at >= since)
+        .filter(Competitor.user_id == current_user.id)
         .group_by(Competitor.username, func.date(Post.posted_at))
         .order_by(func.date(Post.posted_at))
     )

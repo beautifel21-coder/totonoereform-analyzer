@@ -1,8 +1,20 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 from database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    competitors = relationship("Competitor", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Platform(str, enum.Enum):
@@ -14,19 +26,21 @@ class Competitor(Base):
     __tablename__ = "competitors"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # nullable for migration
     username = Column(String, nullable=False)
     display_name = Column(String)
     platform = Column(Enum(Platform), nullable=False)
-    category = Column(String, default="リフォーム")
+    category = Column(String, default="一般")
     note = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    owner = relationship("User", back_populates="competitors")
     snapshots = relationship("Snapshot", back_populates="competitor", cascade="all, delete-orphan")
     posts = relationship("Post", back_populates="competitor", cascade="all, delete-orphan")
 
 
 class Snapshot(Base):
-    """週次フォロワー数スナップショット"""
+    """フォロワー数スナップショット"""
     __tablename__ = "snapshots"
 
     id = Column(Integer, primary_key=True, index=True)

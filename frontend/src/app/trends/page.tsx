@@ -4,8 +4,8 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, Cell, LabelList,
 } from "recharts";
-import { api, type Competitor, type Platform } from "@/lib/api";
-import { TrendingUp, TrendingDown, Minus, RefreshCw, Save } from "lucide-react";
+import { api, type Platform } from "@/lib/api";
+import { TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
 
 const COLORS = ["#E8891A", "#7C3AED", "#0D9488", "#E53E3E", "#3182CE", "#D69E2E", "#ED64A6", "#48BB78"];
 
@@ -23,9 +23,6 @@ export default function TrendsPage() {
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [fetchResult, setFetchResult] = useState<string | null>(null);
-  const [competitors, setCompetitors] = useState<Competitor[]>([]);
-  const [manualFollowers, setManualFollowers] = useState<Record<number, string>>({});
-  const [saving, setSaving] = useState<Record<number, boolean>>({});
 
   const fetchAll = async () => {
     setFetching(true);
@@ -54,21 +51,7 @@ export default function TrendsPage() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    api.competitors.list().then(setCompetitors);
-  }, []);
-
   useEffect(() => { load(); }, [platform, days]);
-
-  const saveSnapshot = async (id: number) => {
-    const val = parseInt(manualFollowers[id] ?? "");
-    if (isNaN(val) || val < 0) return;
-    setSaving(s => ({ ...s, [id]: true }));
-    await api.competitors.recordSnapshot(id, val);
-    setSaving(s => ({ ...s, [id]: false }));
-    setManualFollowers(m => ({ ...m, [id]: "" }));
-    await load();
-  };
 
   const usernames = Array.from(new Set([
     ...Object.keys(followerTrends),
@@ -186,45 +169,6 @@ export default function TrendsPage() {
         </div>
       ) : (
         <>
-          {/* フォロワー数手動入力 */}
-          {competitors.length > 0 && (
-            <section className="card p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl">✏️</span>
-                <h2 className="font-black text-brand-navy text-lg">フォロワー数を入力</h2>
-                <span className="ml-auto text-xs text-gray-400">今日の数字を入力して記録</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {competitors.map((c, i) => (
-                  <div key={c.id} className="flex items-center gap-2 p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0"
-                      style={{ background: COLORS[i % COLORS.length] }}
-                    >
-                      {c.username[0].toUpperCase()}
-                    </div>
-                    <span className="text-sm font-bold text-gray-700 min-w-0 truncate flex-1">@{c.username}</span>
-                    <input
-                      type="number"
-                      placeholder="例: 12500"
-                      value={manualFollowers[c.id] ?? ""}
-                      onChange={e => setManualFollowers(m => ({ ...m, [c.id]: e.target.value }))}
-                      onKeyDown={e => e.key === "Enter" && saveSnapshot(c.id)}
-                      className="w-28 border-2 border-gray-200 rounded-xl px-2 py-1.5 text-sm focus:outline-none focus:border-brand-orange text-right"
-                    />
-                    <button
-                      onClick={() => saveSnapshot(c.id)}
-                      disabled={!manualFollowers[c.id] || saving[c.id]}
-                      className="p-2 rounded-xl bg-brand-orange text-white disabled:opacity-30 hover:bg-orange-600 transition-colors"
-                    >
-                      <Save size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
           {/* 現在のフォロワー数バーチャート */}
           {currentFollowers.length > 0 && (
             <section className="card p-5">

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db
-from models import Competitor, Platform, Snapshot
+from models import Competitor, Platform, Snapshot, User
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/competitors", tags=["competitors"])
 
@@ -11,7 +12,7 @@ class CompetitorCreate(BaseModel):
     username: str
     display_name: str | None = None
     platform: Platform
-    category: str = "リフォーム"
+    category: str = "一般"
     note: str | None = None
 
 
@@ -28,13 +29,20 @@ class CompetitorOut(BaseModel):
 
 
 @router.get("/", response_model=list[CompetitorOut])
-def list_competitors(db: Session = Depends(get_db)):
-    return db.query(Competitor).all()
+def list_competitors(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(Competitor).filter(Competitor.user_id == current_user.id).all()
 
 
 @router.post("/", response_model=CompetitorOut)
-def create_competitor(data: CompetitorCreate, db: Session = Depends(get_db)):
-    competitor = Competitor(**data.model_dump())
+def create_competitor(
+    data: CompetitorCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    competitor = Competitor(**data.model_dump(), user_id=current_user.id)
     db.add(competitor)
     db.commit()
     db.refresh(competitor)
@@ -42,8 +50,15 @@ def create_competitor(data: CompetitorCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{competitor_id}")
-def delete_competitor(competitor_id: int, db: Session = Depends(get_db)):
-    c = db.query(Competitor).filter(Competitor.id == competitor_id).first()
+def delete_competitor(
+    competitor_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    c = db.query(Competitor).filter(
+        Competitor.id == competitor_id,
+        Competitor.user_id == current_user.id,
+    ).first()
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
     db.delete(c)
@@ -56,8 +71,16 @@ class SnapshotIn(BaseModel):
 
 
 @router.post("/{competitor_id}/snapshot")
-def record_snapshot(competitor_id: int, data: SnapshotIn, db: Session = Depends(get_db)):
-    c = db.query(Competitor).filter(Competitor.id == competitor_id).first()
+def record_snapshot(
+    competitor_id: int,
+    data: SnapshotIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    c = db.query(Competitor).filter(
+        Competitor.id == competitor_id,
+        Competitor.user_id == current_user.id,
+    ).first()
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
     snap = Snapshot(competitor_id=competitor_id, follower_count=data.follower_count)
