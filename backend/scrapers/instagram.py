@@ -44,8 +44,8 @@ def fetch_profile(username: str) -> dict:
             "apify~instagram-scraper",
             {
                 "usernames": [username],
+                "resultsType": "posts",
                 "resultsLimit": 3,
-                "scrapeType": "posts",
             },
         )
     except Exception:
@@ -76,8 +76,8 @@ def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
             "apify~instagram-scraper",
             {
                 "usernames": [username],
+                "resultsType": "posts",
                 "resultsLimit": count,
-                "scrapeType": "posts",
             },
         )
     except Exception:
