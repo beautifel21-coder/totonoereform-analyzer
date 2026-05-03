@@ -6,10 +6,11 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          orange: "#E8891A",
-          navy: "#1A202C",
+          blue: "#5BA4CF",
+          sky: "#A8D8EA",
+          navy: "#1A2D4A",
+          soft: "#E8F4FD",
           pink: "#FF6B9D",
-          purple: "#7C3AED",
           teal: "#0D9488",
         },
       },
@@ -58,8 +59,8 @@ const config: Config = {
           "50%":      { transform: "rotate(4deg)" },
         },
         glow: {
-          "0%, 100%": { boxShadow: "0 0 16px rgba(232,137,26,0.25)" },
-          "50%":      { boxShadow: "0 0 36px rgba(232,137,26,0.55)" },
+          "0%, 100%": { boxShadow: "0 0 16px rgba(91,164,207,0.25)" },
+          "50%":      { boxShadow: "0 0 36px rgba(91,164,207,0.55)" },
         },
         rise: {
           "0%":   { transform: "translateY(20px) scale(0.95)", opacity: "0" },
@@ -67,15 +68,15 @@ const config: Config = {
         },
       },
       backgroundImage: {
-        "gradient-brand":  "linear-gradient(135deg, #1A202C 0%, #2D3748 50%, #E8891A 100%)",
-        "gradient-orange": "linear-gradient(135deg, #E8891A, #F6AD55)",
-        "gradient-soft":   "linear-gradient(160deg, #FFF8F0 0%, #F7F8FC 50%, #F0F4FF 100%)",
+        "gradient-brand":  "linear-gradient(135deg, #1A2D4A 0%, #2D5F8A 50%, #5BA4CF 100%)",
+        "gradient-blue":   "linear-gradient(135deg, #5BA4CF, #A8D8EA)",
+        "gradient-soft":   "linear-gradient(160deg, #F0F8FF 0%, #F7F8FC 50%, #EBF5FB 100%)",
         "gradient-insta":  "linear-gradient(135deg, #F58529, #DD2A7B, #8134AF)",
         "gradient-x":      "linear-gradient(135deg, #000000, #14171A)",
       },
       boxShadow: {
-        "warm":    "0 4px 24px rgba(232,137,26,0.15)",
-        "warm-lg": "0 8px 40px rgba(232,137,26,0.25)",
+        "blue":    "0 4px 24px rgba(91,164,207,0.15)",
+        "blue-lg": "0 8px 40px rgba(91,164,207,0.25)",
         "soft":    "0 2px 16px rgba(0,0,0,0.06)",
         "soft-lg": "0 8px 32px rgba(0,0,0,0.08)",
       },

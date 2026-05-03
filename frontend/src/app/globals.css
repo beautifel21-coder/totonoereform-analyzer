@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    background: linear-gradient(160deg, #FFF8F0 0%, #F7F8FC 40%, #F0F4FF 100%);
+    background: linear-gradient(160deg, #F0F8FF 0%, #F7F8FC 40%, #EBF5FB 100%);
     background-attachment: fixed;
     min-height: 100vh;
     overflow-x: hidden;
@@ -14,28 +14,28 @@
 @layer components {
   .card {
     @apply bg-white/85 backdrop-blur-md rounded-3xl border border-white/70 transition-all duration-500;
-    box-shadow: 0 4px 24px rgba(232,137,26,0.08), 0 1px 4px rgba(0,0,0,0.04);
+    box-shadow: 0 4px 24px rgba(91,164,207,0.08), 0 1px 4px rgba(0,0,0,0.04);
   }
   .card:hover {
     transform: translateY(-4px) scale(1.005);
-    box-shadow: 0 12px 40px rgba(232,137,26,0.15), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 12px 40px rgba(91,164,207,0.15), 0 2px 8px rgba(0,0,0,0.06);
   }
 
   .btn-primary {
     @apply flex items-center gap-2 px-5 py-2.5 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
-    background: linear-gradient(135deg, #E8891A, #F6AD55, #E8891A);
+    background: linear-gradient(135deg, #5BA4CF, #A8D8EA, #5BA4CF);
     background-size: 200% auto;
-    box-shadow: 0 4px 20px rgba(232,137,26,0.35);
+    box-shadow: 0 4px 20px rgba(91,164,207,0.35);
     animation: gradientShift 3s ease infinite;
   }
   .btn-primary:hover {
     background-position: right center;
-    box-shadow: 0 6px 28px rgba(232,137,26,0.5);
+    box-shadow: 0 6px 28px rgba(91,164,207,0.5);
     transform: translateY(-1px);
   }
 
   .btn-secondary {
-    @apply flex items-center gap-2 px-4 py-2 bg-white/80 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:border-brand-orange hover:text-brand-orange active:scale-95 transition-all duration-200;
+    @apply flex items-center gap-2 px-4 py-2 bg-white/80 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:border-brand-blue hover:text-brand-blue active:scale-95 transition-all duration-200;
     box-shadow: 0 2px 12px rgba(0,0,0,0.05);
   }
 
@@ -68,7 +68,7 @@
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #E8891A, #F6AD55);
+  background: linear-gradient(to bottom, #5BA4CF, #A8D8EA);
   border-radius: 10px;
 }
 
@@ -78,7 +78,6 @@
   50% { background-position: 100% center; }
   100% { background-position: 0% center; }
 }
-
 
 /* ========== カードの光沢 ========== */
 .card::before {
@@ -94,7 +93,7 @@
 
 /* ========== グラデーションテキスト ========== */
 .text-gradient {
-  background: linear-gradient(135deg, #E8891A 0%, #F6AD55 50%, #E8891A 100%);
+  background: linear-gradient(135deg, #5BA4CF 0%, #A8D8EA 50%, #5BA4CF 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
