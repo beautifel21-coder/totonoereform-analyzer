@@ -34,29 +34,6 @@ def _save_posts(db: Session, competitor: Competitor, posts: list[dict]):
             db.add(post)
 
 
-@router.post("/{competitor_id}")
-def fetch_competitor(competitor_id: int, db: Session = Depends(get_db)):
-    competitor = db.query(Competitor).filter(Competitor.id == competitor_id).first()
-    if not competitor:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    try:
-        if competitor.platform == Platform.instagram:
-            profile = instagram.fetch_profile(competitor.username)
-            posts = instagram.fetch_recent_posts(competitor.username, known_followers=profile.get("follower_count", 0))
-        else:
-            profile = twitter.run_async(twitter.fetch_profile(competitor.username))
-            posts = twitter.run_async(twitter.fetch_recent_posts(competitor.username))
-
-        _save_profile_snapshot(db, competitor, profile)
-        _save_posts(db, competitor, posts)
-        db.commit()
-
-        return {"ok": True, "posts_fetched": len(posts), "followers": profile.get("follower_count")}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/recalc-engagement")
 def recalc_engagement(db: Session = Depends(get_db)):
     """全競合アカウントのエンゲージメント率を最新フォロワー数で再計算"""
@@ -78,6 +55,29 @@ def recalc_engagement(db: Session = Depends(get_db)):
             updated += 1
     db.commit()
     return {"ok": True, "updated": updated}
+
+
+@router.post("/{competitor_id}")
+def fetch_competitor(competitor_id: int, db: Session = Depends(get_db)):
+    competitor = db.query(Competitor).filter(Competitor.id == competitor_id).first()
+    if not competitor:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    try:
+        if competitor.platform == Platform.instagram:
+            profile = instagram.fetch_profile(competitor.username)
+            posts = instagram.fetch_recent_posts(competitor.username, known_followers=profile.get("follower_count", 0))
+        else:
+            profile = twitter.run_async(twitter.fetch_profile(competitor.username))
+            posts = twitter.run_async(twitter.fetch_recent_posts(competitor.username))
+
+        _save_profile_snapshot(db, competitor, profile)
+        _save_posts(db, competitor, posts)
+        db.commit()
+
+        return {"ok": True, "posts_fetched": len(posts), "followers": profile.get("follower_count")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/all")
