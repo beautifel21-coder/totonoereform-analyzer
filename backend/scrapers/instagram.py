@@ -19,6 +19,7 @@ def _run_actor(actor_id: str, body: dict, timeout: int = 180) -> list:
 
 def fetch_profile(username: str) -> dict:
     """Apifyのプロフィールスクレイパーでフォロワー数を取得"""
+    username = username.lstrip("@")
     # apify~instagram-profile-scraper はプロフィール情報に特化
     try:
         items = _run_actor(
@@ -71,6 +72,7 @@ def fetch_profile(username: str) -> dict:
 
 def fetch_recent_posts(username: str, count: int = 30) -> list[dict]:
     """Apify経由でInstagram最新投稿を取得"""
+    username = username.lstrip("@")
     try:
         items = _run_actor(
             "apify~instagram-scraper",
