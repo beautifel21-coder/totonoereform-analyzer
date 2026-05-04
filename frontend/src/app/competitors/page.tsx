@@ -63,24 +63,46 @@ export default function CompetitorsPage() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdding(true);
-    await api.competitors.create({ ...form, category: "リフォーム", display_name: null });
-    setForm({ username: "", platform: "instagram", note: "" });
-    await load();
+    try {
+      await api.competitors.create({ ...form, category: "リフォーム", display_name: null });
+      setForm({ username: "", platform: "instagram", note: "" });
+      await load();
+      setJustAdded(true);
+      setTimeout(() => setJustAdded(false), 2000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "エラーが発生しました";
+      if (msg.includes("上限") || msg.includes("402")) {
+        if (confirm("プランの上限に達しました。料金プランページでアップグレードしますか？")) {
+          window.location.href = "/pricing";
+        }
+      } else {
+        alert(msg);
+      }
+    }
     setAdding(false);
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 2000);
   };
 
   const handleAddAccount = async (acc: SearchedAccount) => {
     setAddingUsername(acc.username);
-    await api.competitors.create({
-      username: acc.username,
-      platform: acc.platform,
-      note: `フォロワー${formatNum(acc.followers)}`,
-      category: "リフォーム",
-      display_name: acc.display_name || null,
-    });
-    await load();
+    try {
+      await api.competitors.create({
+        username: acc.username,
+        platform: acc.platform,
+        note: `フォロワー${formatNum(acc.followers)}`,
+        category: "リフォーム",
+        display_name: acc.display_name || null,
+      });
+      await load();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "エラーが発生しました";
+      if (msg.includes("上限") || msg.includes("402")) {
+        if (confirm("プランの上限に達しました。料金プランページでアップグレードしますか？")) {
+          window.location.href = "/pricing";
+        }
+      } else {
+        alert(msg);
+      }
+    }
     setAddingUsername(null);
   };
 
@@ -102,9 +124,29 @@ export default function CompetitorsPage() {
   };
 
   const alreadyAdded = new Set(competitors.map(c => c.username));
+  const [planInfo, setPlanInfo] = useState<{ plan: string; limit: number } | null>(null);
+  useEffect(() => { api.billing.me().then(setPlanInfo).catch(() => {}); }, []);
 
   return (
     <div className="space-y-6 mt-5 animate-fade-in">
+      {/* プランバナー */}
+      {planInfo && (
+        <div className={`flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-medium ${
+          planInfo.plan === "free"
+            ? "bg-orange-50 border border-orange-200 text-orange-700"
+            : "bg-violet-50 border border-violet-200 text-violet-700"
+        }`}>
+          <span>
+            現在のプラン：<strong>{planInfo.plan === "free" ? "Free" : planInfo.plan === "standard" ? "Standard" : "Pro"}</strong>
+            　アカウント：<strong>{competitors.length}</strong> / {planInfo.limit === 999 ? "無制限" : `${planInfo.limit}件`}
+          </span>
+          {planInfo.plan === "free" && (
+            <a href="/pricing" className="ml-3 px-3 py-1.5 rounded-xl bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition-colors whitespace-nowrap">
+              アップグレード →
+            </a>
+          )}
+        </div>
+      )}
 
       {/* ハッシュタグ検索 */}
       <section className="card overflow-hidden">

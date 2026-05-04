@@ -1,6 +1,6 @@
 "use client";
 import { api } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const PLANS = [
@@ -57,7 +57,7 @@ const PLANS = [
   },
 ];
 
-export default function PricingPage() {
+function PricingContent() {
   const [currentPlan, setCurrentPlan] = useState<string>("free");
   const [loading, setLoading] = useState<string | null>(null);
   const searchParams = useSearchParams();
@@ -100,7 +100,7 @@ export default function PricingPage() {
       )}
 
       <div className="text-center space-y-2">
-        <h1 className="font-black text-3xl text-sky-700">料金プラン</h1>
+        <h1 className="font-black text-3xl text-orange-600">料金プラン</h1>
         <p className="text-gray-500 text-sm">すべてのプランは月額・いつでも解約可能</p>
         {isPaid && (
           <p className="text-sm text-gray-500">
@@ -152,7 +152,7 @@ export default function PricingPage() {
               <ul className="space-y-2 flex-1">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="text-sky-500 font-bold">✓</span>
+                    <span className="text-orange-500 font-bold">✓</span>
                     {f}
                   </li>
                 ))}
@@ -195,5 +195,13 @@ export default function PricingPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="mt-6 text-center text-gray-400">読み込み中...</div>}>
+      <PricingContent />
+    </Suspense>
   );
 }
