@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime
 from database import get_db
-from models import Competitor, Snapshot, Post, Platform
+from models import Competitor, Snapshot, Post, Platform, User
 from scrapers import instagram, twitter
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/fetch", tags=["fetch"])
 
@@ -35,9 +35,12 @@ def _save_posts(db: Session, competitor: Competitor, posts: list[dict]):
 
 
 @router.post("/recalc-engagement")
-def recalc_engagement(db: Session = Depends(get_db)):
+def recalc_engagement(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """全競合アカウントのエンゲージメント率を最新フォロワー数で再計算"""
-    competitors = db.query(Competitor).all()
+    competitors = db.query(Competitor).filter(Competitor.user_id == current_user.id).all()
     updated = 0
     for c in competitors:
         latest_snap = (
@@ -58,8 +61,15 @@ def recalc_engagement(db: Session = Depends(get_db)):
 
 
 @router.post("/{competitor_id}")
-def fetch_competitor(competitor_id: int, db: Session = Depends(get_db)):
-    competitor = db.query(Competitor).filter(Competitor.id == competitor_id).first()
+def fetch_competitor(
+    competitor_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    competitor = db.query(Competitor).filter(
+        Competitor.id == competitor_id,
+        Competitor.user_id == current_user.id,
+    ).first()
     if not competitor:
         raise HTTPException(status_code=404, detail="Not found")
 
@@ -81,8 +91,11 @@ def fetch_competitor(competitor_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/all")
-def fetch_all(db: Session = Depends(get_db)):
-    competitors = db.query(Competitor).all()
+def fetch_all(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    competitors = db.query(Competitor).filter(Competitor.user_id == current_user.id).all()
     results = []
     for c in competitors:
         try:

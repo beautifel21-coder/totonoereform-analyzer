@@ -3,10 +3,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import engine, Base
 from routers import competitors, fetch, analytics, export, search
+from routers import auth, billing
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Totonoē Reform 競合分析API", version="1.0.0")
+# 既存テーブルへのカラム追加（ALTER TABLE IF NOT EXISTS）
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE competitors ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)"))
+        conn.commit()
+    except Exception as e:
+        print(f"[migration] user_id column: {e}")
+    try:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR DEFAULT 'free'"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR"))
+        conn.commit()
+    except Exception as e:
+        print(f"[migration] plan columns: {e}")
+
+app = FastAPI(title="Buzzly SNS競合分析API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
+app.include_router(billing.router)
 app.include_router(competitors.router)
 app.include_router(fetch.router)
 app.include_router(analytics.router)
@@ -25,6 +44,20 @@ app.include_router(search.router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/admin/assign-orphans")
+def assign_orphans(user_id: int, db=None):
+    """user_id=NULLの競合データを指定ユーザーに紐付け"""
+    from database import SessionLocal
+    from models import Competitor
+    db = SessionLocal()
+    try:
+        updated = db.query(Competitor).filter(Competitor.user_id == None).update({"user_id": user_id})
+        db.commit()
+        return {"ok": True, "updated": updated}
+    finally:
+        db.close()
 
 
 # 毎日午前3時に全競合データを自動取得
