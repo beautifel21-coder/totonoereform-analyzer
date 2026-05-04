@@ -38,6 +38,20 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/admin/assign-orphans")
+def assign_orphans(user_id: int, db=None):
+    """user_id=NULLの競合データを指定ユーザーに紐付け"""
+    from database import SessionLocal
+    from models import Competitor
+    db = SessionLocal()
+    try:
+        updated = db.query(Competitor).filter(Competitor.user_id == None).update({"user_id": user_id})
+        db.commit()
+        return {"ok": True, "updated": updated}
+    finally:
+        db.close()
+
+
 # 毎日午前3時に全競合データを自動取得
 scheduler = BackgroundScheduler()
 
