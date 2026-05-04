@@ -1,6 +1,6 @@
 "use client";
 import "./globals.css";
-import BuzzlyLogo from "@/components/BuzzlyLogo";
+import Mascot from "@/components/Mascot";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUser, clearAuth, isLoggedIn } from "@/lib/auth";
@@ -15,8 +15,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const user = getUser();
     setEmail(user?.email ?? null);
-
-    // ログインしていない場合、認証不要ページ以外はリダイレクト
     if (!isAuthPage && !isLoggedIn()) {
       window.location.href = "/login";
     }
@@ -30,87 +28,50 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <head>
-        <title>Buzzly - SNS競合分析</title>
-        <meta name="description" content="SNS競合分析ツール Buzzly" />
-        <meta name="theme-color" content="#3B9ED4" />
+        <title>Totonoē Reform 競合分析</title>
+        <meta name="description" content="リフォーム業界の競合SNS分析ツール" />
+        <meta name="theme-color" content="#E8891A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="text-gray-800 min-h-screen">
+      <body className="text-gray-900 min-h-screen">
 
-        {/* 浮かぶ泡の背景 */}
-        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-          <div className="absolute inset-0" style={{
-            background: "linear-gradient(160deg, #B8DFF5 0%, #C8E6F7 25%, #D6EEFF 55%, #E8F5FF 80%, #F0F8FF 100%)"
-          }} />
-          <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] rounded-full opacity-60"
-            style={{ background: "radial-gradient(circle, #A8D8EA 0%, transparent 70%)", animation: "breathe 8s ease-in-out infinite" }} />
-          <div className="absolute bottom-[-80px] left-[-80px] w-[400px] h-[400px] rounded-full opacity-50"
-            style={{ background: "radial-gradient(circle, #7EC8E3 0%, transparent 70%)", animation: "breathe 10s ease-in-out infinite 2s" }} />
-          <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full opacity-30"
-            style={{ background: "radial-gradient(circle, #5BA4CF 0%, transparent 70%)", animation: "breathe 12s ease-in-out infinite 4s" }} />
-          {[
-            { size: 60, left: "10%", delay: "0s", duration: "15s" },
-            { size: 40, left: "25%", delay: "3s", duration: "18s" },
-            { size: 80, left: "50%", delay: "6s", duration: "20s" },
-            { size: 30, left: "70%", delay: "1s", duration: "13s" },
-            { size: 50, left: "85%", delay: "8s", duration: "17s" },
-            { size: 25, left: "40%", delay: "4s", duration: "22s" },
-          ].map((b, i) => (
-            <div key={i} className="bubble" style={{
-              width: b.size, height: b.size,
-              left: b.left,
-              animationDelay: b.delay,
-              animationDuration: b.duration,
-            }} />
-          ))}
-        </div>
+        {!isAuthPage && <Mascot />}
 
         {/* ヘッダー */}
         {!isAuthPage && (
-          <header className="relative overflow-hidden text-white px-5 py-4 flex items-center gap-3 z-40"
-            style={{
-              background: "linear-gradient(135deg, #1A6FA8 0%, #2B8CC4 50%, #3B9ED4 100%)",
-              boxShadow: "0 4px 30px rgba(27,111,168,0.4)"
-            }}>
+          <header className="relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-orange-900 text-white px-5 py-4 flex items-center gap-3 shadow-warm-lg z-40">
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-20"
-                style={{ background: "radial-gradient(circle, white, transparent)" }} />
-              <div className="absolute top-0 left-1/3 w-32 h-32 rounded-full opacity-10"
-                style={{ background: "radial-gradient(circle, white, transparent)" }} />
+              <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-brand-orange/25 blur-3xl animate-breathe" />
+              <div className="absolute -bottom-6 left-1/4 w-40 h-40 rounded-full bg-yellow-400/15 blur-2xl animate-float-slow" />
             </div>
 
-            <div className="relative flex items-center gap-3">
-              <div style={{ animation: "float 4s ease-in-out infinite" }}>
-                <BuzzlyLogo size={44} />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-black text-2xl tracking-tight leading-none" style={{
-                  textShadow: "0 2px 8px rgba(0,0,0,0.2)"
-                }}>Buzzly</span>
-                <span className="text-sky-200 text-xs font-medium">SNS競合分析</span>
+            <div className="relative flex items-center gap-2">
+              <span className="text-2xl animate-wave inline-block">🏠</span>
+              <div>
+                <span className="text-gradient font-black text-xl tracking-tight">Totonoē</span>
+                <span className="text-white font-bold text-xl"> Reform</span>
               </div>
             </div>
+            <span className="relative text-gray-400 text-sm hidden sm:block">｜ 競合SNS分析</span>
 
             <div className="ml-auto relative flex items-center gap-2">
               {email && (
-                <span className="hidden sm:block text-sky-200 text-xs truncate max-w-[160px]">{email}</span>
+                <span className="hidden sm:block text-gray-400 text-xs truncate max-w-[160px]">{email}</span>
               )}
               <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white active:scale-95 transition-all"
-                style={{ background: "linear-gradient(135deg, #F58529, #DD2A7B, #8134AF)", boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}>
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500 text-white hover:opacity-90 active:scale-95 transition-all shadow-warm">
                 📷 Instagram
               </a>
               <a href="https://x.com/" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gray-900 text-white border border-gray-600 hover:bg-gray-800 active:scale-95 transition-all"
-                style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}>
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-black text-white border border-gray-600 hover:bg-gray-800 active:scale-95 transition-all">
                 𝕏 X
               </a>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/20 hover:bg-white/30 active:scale-95 transition-all border border-white/30"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/20"
               >
                 ログアウト
               </button>
@@ -120,8 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* ナビゲーション */}
         {!isAuthPage && (
-          <nav className="backdrop-blur-xl border-b border-white/50 px-4 flex gap-1 text-sm font-medium overflow-x-auto sticky top-0 z-50"
-            style={{ background: "rgba(255,255,255,0.6)", boxShadow: "0 2px 20px rgba(91,164,207,0.15)" }}>
+          <nav className="bg-white/75 backdrop-blur-lg border-b border-white/60 px-4 flex gap-1 text-sm font-medium shadow-soft overflow-x-auto sticky top-0 z-50">
             {[
               { href: "/",            label: "📊 ダッシュボード" },
               { href: "/competitors", label: "🏆 競合管理" },
@@ -134,8 +94,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a key={href} href={href}
                 className={`py-3 px-3 whitespace-nowrap border-b-2 transition-all duration-300 hover:scale-105 active:scale-95 ${
                   pathname === href
-                    ? "text-sky-600 border-sky-500 font-bold"
-                    : "text-gray-500 border-transparent hover:text-sky-500 hover:border-sky-300"
+                    ? "text-brand-orange border-brand-orange font-bold"
+                    : "text-gray-500 border-transparent hover:text-brand-orange hover:border-brand-orange"
                 }`}>
                 {label}
               </a>
@@ -147,6 +107,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className={`relative z-10 ${isAuthPage ? "" : "p-4 max-w-6xl mx-auto"}`}>
           {children}
         </main>
+
+        {/* 背景 */}
+        {!isAuthPage && (
+          <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
+            <div className="absolute top-1/4 right-0 w-[500px] h-[500px] rounded-full bg-orange-100/40 blur-[80px] animate-breathe" />
+            <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] rounded-full bg-purple-100/25 blur-[80px] animate-float-slow" />
+            <div className="absolute top-2/3 right-1/3 w-[300px] h-[300px] rounded-full bg-yellow-100/35 blur-[60px] animate-shimmer" />
+          </div>
+        )}
       </body>
     </html>
   );
