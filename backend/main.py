@@ -7,6 +7,15 @@ from routers import auth
 
 Base.metadata.create_all(bind=engine)
 
+# 既存テーブルへのカラム追加（ALTER TABLE IF NOT EXISTS）
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE competitors ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)"))
+        conn.commit()
+    except Exception as e:
+        print(f"[migration] user_id column: {e}")
+
 app = FastAPI(title="Buzzly SNS競合分析API", version="2.0.0")
 
 app.add_middleware(
