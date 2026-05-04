@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import engine, Base
 from routers import competitors, fetch, analytics, export, search
-from routers import auth
+from routers import auth, billing
 
 Base.metadata.create_all(bind=engine)
 
@@ -15,6 +15,13 @@ with engine.connect() as conn:
         conn.commit()
     except Exception as e:
         print(f"[migration] user_id column: {e}")
+    try:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR DEFAULT 'free'"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR"))
+        conn.commit()
+    except Exception as e:
+        print(f"[migration] plan columns: {e}")
 
 app = FastAPI(title="Buzzly SNS競合分析API", version="2.0.0")
 
@@ -26,6 +33,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(billing.router)
 app.include_router(competitors.router)
 app.include_router(fetch.router)
 app.include_router(analytics.router)

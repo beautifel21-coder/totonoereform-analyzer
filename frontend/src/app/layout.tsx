@@ -89,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               { href: "/content",     label: "🎨 コンテンツ" },
               { href: "/top-posts",   label: "🔥 人気投稿" },
               { href: "/trends",      label: "📈 推移グラフ" },
+              { href: "/pricing",     label: "💳 料金プラン" },
             ].map(({ href, label }) => (
               <a key={href} href={href}
                 className={`py-3 px-3 whitespace-nowrap border-b-2 transition-all duration-300 hover:scale-105 active:scale-95 ${
