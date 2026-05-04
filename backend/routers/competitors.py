@@ -42,6 +42,14 @@ def create_competitor(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from routers.billing import get_plan_limit
+    count = db.query(Competitor).filter(Competitor.user_id == current_user.id).count()
+    limit = get_plan_limit(current_user.plan)
+    if count >= limit:
+        raise HTTPException(
+            status_code=402,
+            detail=f"プランの上限（{limit}件）に達しました。アップグレードしてください。",
+        )
     competitor = Competitor(**data.model_dump(), user_id=current_user.id)
     db.add(competitor)
     db.commit()

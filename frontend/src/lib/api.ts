@@ -172,6 +172,16 @@ export const api = {
       return get<SearchedAccount[]>(`/search/accounts?${q}`);
     },
   },
+  billing: {
+    me: () => get<{ plan: string; limit: number }>("/billing/me"),
+    checkout: (plan: string) =>
+      post<{ url: string }>("/billing/checkout", {
+        plan,
+        success_url: `${window.location.origin}/pricing?success=1`,
+        cancel_url: `${window.location.origin}/pricing`,
+      }),
+    portal: () => post<{ url: string }>("/billing/portal", {}),
+  },
   exportCsv: () => {
     const token = getToken();
     return `${BASE}/export/posts.csv${token ? `?token=${token}` : ""}`;
