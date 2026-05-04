@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    background: linear-gradient(160deg, #F0F8FF 0%, #F7F8FC 40%, #EBF5FB 100%);
+    background: linear-gradient(160deg, #C8E6F7 0%, #D6EEFF 30%, #E8F5FF 60%, #F0F8FF 100%);
     background-attachment: fixed;
     min-height: 100vh;
     overflow-x: hidden;
@@ -13,29 +13,29 @@
 
 @layer components {
   .card {
-    @apply bg-white/85 backdrop-blur-md rounded-3xl border border-white/70 transition-all duration-500;
-    box-shadow: 0 4px 24px rgba(91,164,207,0.08), 0 1px 4px rgba(0,0,0,0.04);
+    @apply bg-white/80 backdrop-blur-md rounded-3xl border border-white/80 transition-all duration-500;
+    box-shadow: 0 4px 24px rgba(91,164,207,0.12), 0 1px 4px rgba(0,0,0,0.04);
   }
   .card:hover {
     transform: translateY(-4px) scale(1.005);
-    box-shadow: 0 12px 40px rgba(91,164,207,0.15), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 12px 40px rgba(91,164,207,0.22), 0 2px 8px rgba(0,0,0,0.06);
   }
 
   .btn-primary {
     @apply flex items-center gap-2 px-5 py-2.5 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
-    background: linear-gradient(135deg, #5BA4CF, #A8D8EA, #5BA4CF);
+    background: linear-gradient(135deg, #3B9ED4, #5BA4CF, #7EC8E3);
     background-size: 200% auto;
-    box-shadow: 0 4px 20px rgba(91,164,207,0.35);
+    box-shadow: 0 4px 20px rgba(59,158,212,0.4);
     animation: gradientShift 3s ease infinite;
   }
   .btn-primary:hover {
     background-position: right center;
-    box-shadow: 0 6px 28px rgba(91,164,207,0.5);
-    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(59,158,212,0.55);
+    transform: translateY(-2px);
   }
 
   .btn-secondary {
-    @apply flex items-center gap-2 px-4 py-2 bg-white/80 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:border-brand-blue hover:text-brand-blue active:scale-95 transition-all duration-200;
+    @apply flex items-center gap-2 px-4 py-2 bg-white/90 border-2 border-sky-200 text-sky-700 rounded-xl font-semibold text-sm hover:border-sky-400 hover:text-sky-500 active:scale-95 transition-all duration-200;
     box-shadow: 0 2px 12px rgba(0,0,0,0.05);
   }
 
@@ -60,7 +60,7 @@
   }
 
   .empty-state {
-    @apply flex flex-col items-center justify-center py-20 text-gray-400 gap-4 animate-fade-in;
+    @apply flex flex-col items-center justify-center py-20 text-sky-300 gap-4 animate-fade-in;
   }
 }
 
@@ -85,7 +85,7 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 50%, transparent 100%);
   border-radius: 24px 24px 0 0;
   pointer-events: none;
 }
@@ -93,7 +93,7 @@
 
 /* ========== グラデーションテキスト ========== */
 .text-gradient {
-  background: linear-gradient(135deg, #5BA4CF 0%, #A8D8EA 50%, #5BA4CF 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #D6EEFF 50%, #ffffff 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -103,9 +103,9 @@
 
 /* ========== ガラス ========== */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
 /* ========== アニメーション遅延 ========== */
@@ -126,3 +126,45 @@ main > * {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ========== 泡エフェクト ========== */
+.bubble {
+  position: fixed;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(168,216,234,0.3));
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(255,255,255,0.5);
+  pointer-events: none;
+  animation: bubbleFloat linear infinite;
+}
+
+@keyframes bubbleFloat {
+  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.4; }
+  100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50%       { transform: scale(1.08); opacity: 0.9; }
+}
+
+@keyframes animate-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes animate-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-rise  { animation: animate-rise 0.4s ease both; }
+.animate-fade-in { animation: animate-fade-in 0.5s ease both; }

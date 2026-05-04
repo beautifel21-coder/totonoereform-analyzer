@@ -1,7 +1,18 @@
+import { getToken } from "./auth";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+function authHeaders(): HeadersInit {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
+  const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
+  if (res.status === 401) {
+    window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -9,15 +20,36 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401) {
+    window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
 
+async function postForm<T>(path: string, body: Record<string, string>): Promise<T> {
+  const form = new URLSearchParams(body);
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "エラーが発生しました" }));
+    throw new Error(err.detail ?? "エラーが発生しました");
+  }
+  return res.json();
+}
+
 async function del<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { method: "DELETE" });
+  const res = await fetch(`${BASE}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -78,7 +110,20 @@ export interface TopPost {
   posted_at: string | null;
 }
 
+export interface AuthToken {
+  access_token: string;
+  token_type: string;
+  user: { id: number; email: string; created_at: string };
+}
+
 export const api = {
+  auth: {
+    register: (email: string, password: string) =>
+      post<AuthToken>("/auth/register", { email, password }),
+    login: (email: string, password: string) =>
+      postForm<AuthToken>("/auth/login", { username: email, password }),
+    me: () => get<{ id: number; email: string; created_at: string }>("/auth/me"),
+  },
   competitors: {
     list: () => get<Competitor[]>("/competitors/"),
     create: (data: Omit<Competitor, "id">) => post<Competitor>("/competitors/", data),
@@ -128,5 +173,18 @@ export const api = {
       return get<SearchedAccount[]>(`/search/accounts?${q}`);
     },
   },
-  exportCsv: () => `${BASE}/export/posts.csv`,
+  billing: {
+    me: () => get<{ plan: string; limit: number }>("/billing/me"),
+    checkout: (plan: string) =>
+      post<{ url: string }>("/billing/checkout", {
+        plan,
+        success_url: `${window.location.origin}/pricing?success=1`,
+        cancel_url: `${window.location.origin}/pricing`,
+      }),
+    portal: () => post<{ url: string }>("/billing/portal", {}),
+  },
+  exportCsv: () => {
+    const token = getToken();
+    return `${BASE}/export/posts.csv${token ? `?token=${token}` : ""}`;
+  },
 };
