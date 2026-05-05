@@ -1,11 +1,11 @@
 {
-  "name": "Buzzly - SNS競合分析",
-  "short_name": "Buzzly",
-  "description": "SNS競合アカウントを分析するツール",
+  "name": "Totonoē Reform 競合分析",
+  "short_name": "Totonoē",
+  "description": "リフォーム業界の競合SNS分析ツール",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F0F8FF",
-  "theme_color": "#5BA4CF",
+  "background_color": "#FFF7ED",
+  "theme_color": "#E8891A",
   "icons": [
     {
       "src": "/icon-192.png",
