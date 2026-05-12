@@ -1,3 +1,4 @@
+import math
 import httpx
 from fastapi import APIRouter, Query, HTTPException
 from datetime import datetime, timezone, timedelta
@@ -36,7 +37,7 @@ def search_accounts(
             f"{APIFY_BASE}/acts/apify~instagram-hashtag-scraper/run-sync-get-dataset-items",
             params={"token": settings.apify_api_token},
             json={
-                "hashtags": REFORM_HASHTAGS,
+                "hashtags": hashtag_list,
                 "resultsPerPage": results_limit,
                 "maxRequestRetries": 3,
             },
@@ -103,7 +104,6 @@ def search_accounts(
         avg_likes = acc["total_likes"] // posts
         avg_engagement = round((acc["total_likes"] + acc["total_comments"]) / posts / followers * 100, 2)
         # バズスコア = エンゲージメント率 × log(フォロワー数) × 投稿露出回数
-        import math
         buzz_score = avg_engagement * math.log10(max(followers, 1)) * posts
         result.append({
             "username": acc["username"],

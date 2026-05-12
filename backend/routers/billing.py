@@ -18,8 +18,6 @@ PLAN_LIMITS = {
     "pro": 999,
 }
 
-PRICE_TO_PLAN = {}  # populated at runtime
-
 
 def get_plan_limit(plan: str) -> int:
     return PLAN_LIMITS.get(plan, 5)
